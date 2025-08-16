@@ -29,7 +29,7 @@ class ResidualBlock(nn):
         return out
     
     class AudioCNN(nn.Module):
-        def __init__(self,num,classes=50):
+        def __init__(self,num_classes=50):
             super().__init__()
             self.conv1=nn.Sequential(
                 nn.Conv2(1,64,7,stride=2,padding=3,bias=False), nn.BatchNorm2d(64), nn.ReLU(inplace=True),nn.MaxPool2d(3,stride=2,padding=1)
