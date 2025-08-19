@@ -35,34 +35,34 @@ class AudioCNN(nn.Module):
         self.conv1=nn.Sequential(
             nn.Conv2d(1,64,7,stride=2,padding=3,bias=False), nn.BatchNorm2d(64), nn.ReLU(inplace=True),nn.MaxPool2d(3,stride=2,padding=1)
         )     
-            self.layer1 = nn.ModuleList([ResidualBlock(64, 64) for i in range(3)])
-            self.layer2 = nn.ModuleList([ResidualBlock(64 if i==0 else 128, 128) for i in range(4)])
-            self.layer3 = nn.ModuleList([ResidualBlock(64 if i==0 else 256, 256) for i in range(6)])
-            self.layer4 = nn.ModuleList([ResidualBlock(64 if i==0 else 512, 512) for i in range(3)])
-            
-            self.avgpool = nn.AdaptiveAvgPool2d((1,1))
-            self.dropout = nn.Dropout(0.5)
-            self.fc=nn.Linear(512,num_classes)
+        self.layer1 = nn.ModuleList([ResidualBlock(64, 64) for i in range(3)])
+        self.layer2 = nn.ModuleList([ResidualBlock(64 if i==0 else 128, 128) for i in range(4)])
+        self.layer3 = nn.ModuleList([ResidualBlock(64 if i==0 else 256, 256) for i in range(6)])
+        self.layer4 = nn.ModuleList([ResidualBlock(64 if i==0 else 512, 512) for i in range(3)])
+          
+        self.avgpool = nn.AdaptiveAvgPool2d((1,1))
+        self.dropout = nn.Dropout(0.5)
+        self.fc=nn.Linear(512,num_classes)
 
-        def forward(self,x):
-            x=self.conv1(x)
-            for block in self.layer1:
-                x=block(x)
-            for block in self.layer2:
-                x=block(x)
-            for block in self.layer3:
-                x=block(x)
-            for block in self.layer4:
-                x=block(x)
-            
-            x=self.avgpool(x)
-            # reshape the tensor without changing data ("transformation")
-            x=x.view(x.size(0),-1)
+    def forward(self,x):
+        x=self.conv1(x)
+        for block in self.layer1:
+            x=block(x)
+        for block in self.layer2:
+            x=block(x)
+        for block in self.layer3:
+            x=block(x)
+        for block in self.layer4:
+            x=block(x)
+        
+        x=self.avgpool(x)
+        # reshape the tensor without changing data ("transformation")
+        x=x.view(x.size(0),-1)
 
-            #dropout
-            x=self.dropout(x)
-            x=self.fc(x)
-            return x
+        #dropout
+        x=self.dropout(x)
+        x=self.fc(x)
+        return x
         
 
         
