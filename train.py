@@ -1,9 +1,17 @@
 import sys
 import pandas as pd
+import torchaudio
+
 
 import modal
+import torch
+import torch.nn as nn
+import torch.audio.transforms as T
+import torch.optim as optim
 from torch.utils.data import Dataset
 
+
+from model import AudioCNN
 
 app = modal.App("audio-cnn")
 image = (modal.Image.debian_slim()
@@ -44,25 +52,69 @@ class ESC50Dataset(Dataset):
             return len(self.metadata)
             
     def __getitem__(self, idx):
-            row = self.metadata.iloc[idx]
-            audio_path = self.data_dir / "audio" / row['filename']
+        row = self.metadata.iloc[idx]
+        audio_path = self.data_dir / "audio" / row['filename']
 
-            waveform, sample_rate = torchaudio.load(audio_path)
+        waveform, sample_rate = torchaudio.load(audio_path)
 
-            if waveform.shape[0] > 1:
-                waveform = torch.mean(waveform, dim=0, keepdim=True)
+        if waveform.shape[0] > 1:
+            waveform = torch.mean(waveform, dim=0, keepdim=True)
 
-            if self.transform:
-                spectrogram = self.transform(waveform)
-            else:
-                spectrogram = waveform
+        if self.transform:
+            spectrogram = self.transform(waveform)
+        else:
+            spectrogram = waveform
 
-            return spectrogram, row['label']
+        return spectrogram, row['label']
 
 
 @app.function(image=image, gpu="A10G", volumes={"/data":volume,"/models":model_volume},timeout=3600*3)
 def train():
-    print("Training Not Impemented")
+    # print("Training Not Impemented")
+    from datetime import datetime
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_dir = f'/models/tensorboard_logs/run_{timestamp}'
+    writer = SummaryWriter(log_dir)
+
+    esc50_dir = Path("/opt/esc50-data")
+
+    train_transform = nn.Sequential(
+        T.MelSpectrogram(
+            sample_rate=22050,
+            n_fft=1024,
+            hop_length=512,
+            n_mels=128,
+            f_min=0,
+            f_max=11025
+        ),
+        T.AmplitudeToDB(),
+        T.FrequencyMasking(freq_mask_param=30),
+        T.TimeMasking(time_mask_param=80)
+    )
+
+    val_transform = nn.Sequential(
+        T.MelSpectrogram(
+            sample_rate=22050,
+            n_fft=1024,
+            hop_length=512,
+            n_mels=128,
+            f_min=0,
+            f_max=11025
+        ),
+        T.AmplitudeToDB()
+    )
+    train_dataset = ESC50Dataset(
+        data_dir=esc50_dir, metadata_file=esc50_dir / "meta" / "esc50.csv", split="train", transform=train_transform)
+
+    val_dataset = ESC50Dataset(
+        data_dir=esc50_dir, metadata_file=esc50_dir / "meta" / "esc50.csv", split="test", transform=val_transform)
+
+    print(f"Training samples: {len(train_dataset)}")
+    print(f"Val samples: {len(val_dataset)}")
+
+    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    test_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
 @app.local_entrypoint()
 def main():
