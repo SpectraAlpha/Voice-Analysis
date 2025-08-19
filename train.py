@@ -6,7 +6,7 @@ import torchaudio
 import modal
 import torch
 import torch.nn as nn
-import torch.audio.transforms as T
+import torchaudio.transforms as T
 import torch.optim as optim
 from torch.utils.data import Dataset
 
