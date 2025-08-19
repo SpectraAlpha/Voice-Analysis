@@ -1,7 +1,7 @@
 import sys
 import pandas as pd
 import torchaudio
-
+from pathlib import Path
 
 import modal
 import torch
@@ -9,9 +9,9 @@ import torch.nn as nn
 import torchaudio.transforms as T
 import torch.optim as optim
 from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
-
-from model import AudioCNN
+#from model import AudioCNN
 
 app = modal.App("audio-cnn")
 image = (modal.Image.debian_slim()
@@ -31,7 +31,7 @@ volume = modal.Volume.from_name("esc50-data", create_if_missing=True)
 model_volume = modal.Volume.from_name("esc-model", create_if_missing=True)
 
 class ESC50Dataset(Dataset):
-    def __init__(self, data_dir,metadata_file,split="train",transform=none):
+    def __init__(self, data_dir,metadata_file,split="train",transform=None):
         super().__init__()
         self.data_dir=Path(data_dir)
         self.metadata=pd.read_csv(metadata_file)
@@ -70,12 +70,12 @@ class ESC50Dataset(Dataset):
 
 @app.function(image=image, gpu="A10G", volumes={"/data":volume,"/models":model_volume},timeout=3600*3)
 def train():
-    # print("Training Not Impemented")
+    #print("Training Not Impemented")
     from datetime import datetime
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_dir = f'/models/tensorboard_logs/run_{timestamp}'
-    writer = SummaryWriter(log_dir)
+    #writer = SummaryWriter(log_dir)
 
     esc50_dir = Path("/opt/esc50-data")
 
